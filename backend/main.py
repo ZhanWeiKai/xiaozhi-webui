@@ -1,4 +1,3 @@
-from urllib.parse import urlparse
 from app.utils.logger import get_logger, setup_logging
 from app.utils.system_info import setup_opus
 
@@ -45,18 +44,11 @@ if __name__ == "__main__":
         )
 
         # 启动 FastAPI 服务器
-        BACKEND_URL = str(configuration.get("BACKEND_URL"))
-        parsed_url = urlparse(BACKEND_URL)
-        BACKEND_HOST = parsed_url.hostname
-        BACKEND_PORT = parsed_url.port
-        
-        if BACKEND_HOST is None or BACKEND_PORT is None:
-            logger.error(f"无效的 BACKEND_URL: {BACKEND_URL}")
-            cleanup(proxy_process)
-            exit(1)
-            
-        logger.info(f"FastAPI 服务器地址: {BACKEND_HOST}:{BACKEND_PORT}")
-        uvicorn.run(app, host=BACKEND_HOST, port=BACKEND_PORT)
+        BIND_HOST = configuration.get_str("BIND_HOST", "0.0.0.0")
+        BACKEND_PORT = configuration.get_int("BACKEND_PORT", 8081)
+
+        logger.info(f"FastAPI 服务器地址: {BIND_HOST}:{BACKEND_PORT}")
+        uvicorn.run(app, host=BIND_HOST, port=BACKEND_PORT)
         
     except KeyboardInterrupt:
         logger.info("主进程收到中断信号")

@@ -41,3 +41,6 @@ config/
 
 # Others
 *.bat
+
+# Claude temp files
+tmpclaude-*-cwd

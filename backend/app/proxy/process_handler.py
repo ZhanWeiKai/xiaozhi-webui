@@ -27,12 +27,14 @@ def run_proxy():
     try:
         configuration = ConfigManager()
         ws_proxy_url = configuration.get_str("WS_PROXY_URL")
+        # 优先使用 LOCAL_PROXY_HOST，如果没有则从 WS_PROXY_URL 解析
+        local_proxy_host = configuration.get_str("LOCAL_PROXY_HOST") or urlparse(ws_proxy_url).hostname
         proxy = WebSocketProxy(
             device_id=configuration.get_str("DEVICE_ID"),
             client_id=configuration.get_str("CLIENT_ID"),
             websocket_url=configuration.get_str("WS_URL"),
             ota_version_url=configuration.get_str("OTA_VERSION_URL"),
-            proxy_host=urlparse(ws_proxy_url).hostname,
+            proxy_host=local_proxy_host,
             proxy_port=urlparse(ws_proxy_url).port,
             token_enable=configuration.get_bool("TOKEN_ENABLE"),
             token=configuration.get_str("DEVICE_TOKEN"),

@@ -28,6 +28,7 @@ export const useSettingStore = defineStore('setting', () => {
 		ws_url: wsUrl,
 		ws_proxy_url: wsProxyUrl,
 		ota_version_url: otaVersionUrl,
+		backend_url: backendUrl,
 		token_enable: tokenEnable,
 		token: token,
 		device_id: deviceId
@@ -45,13 +46,7 @@ export const useSettingStore = defineStore('setting', () => {
 			Object.entries(configRefMap).forEach(([key, ref]) => {
 				const value = data[key]
 				if (value !== undefined && value !== null) {
-					// 本地服务器和本地代理 IP 默认为 localhost
-					if (key === 'ws_proxy_url' && typeof value === 'string') {
-						const backendIp = backendUrl.value.split('://')[1].split(':')[0]
-						ref.value = `ws://${backendIp}` + value.substring(value.lastIndexOf(':'))
-					} else {
-						ref.value = value
-					}
+					ref.value = value
 				}
 			})
 			return true;

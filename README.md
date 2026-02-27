@@ -112,7 +112,7 @@ uv run main.py
 
 ### 浏览页面
 
-在浏览器中访问 `http://localhost:5173` 即可使用
+在浏览器中访问 `http://localhost:5174` 即可使用
 
 <img src="./images/页面展示.jpg" alt="页面展示" style="width: 100%;">
 
@@ -136,7 +136,7 @@ BaseEventLoop.create_connection() got an unexpected keyword argument 'extra_head
 
 **3. 端口占用问题**
 
-- 前端默认端口：5173
+- 前端默认端口：5174
 - 后端默认端口：5000
 - 如有冲突，请在配置文件中修改端口设置
 

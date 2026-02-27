@@ -1,6 +1,7 @@
 import asyncio
 import signal
 import websockets
+from websockets.exceptions import ConnectionClosedOK, ConnectionClosed
 import json
 import numpy as np
 import requests
@@ -88,7 +89,9 @@ class WebSocketProxy:
                 timeout=10,  # 设置超时时间，防止请求卡死
                 # proxies={"http": None, "https": None},  # 禁用代理
             )
-
+            logger.info(f"OTAURL: {self.ota_version_url}")
+            logger.info(f"payload: {payload}")
+            logger.info(f"headers: {headers}")
             # 检查 HTTP 状态码
             if response.status_code != 200:
                 logger.error(f"OTA 服务器错误: HTTP {response.status_code}")
@@ -102,12 +105,9 @@ class WebSocketProxy:
                 logger.debug(f"MQTT 信息已更新:\n{json.dumps(response_data, indent=2, ensure_ascii=False)}")
                 return response_data["mqtt"]
             else:
-                logger.error(
-                    f"OTA 服务器返回的数据无效: 没有 MQTT 信息: {response_data}"
-                )
-                raise ValueError(
-                    "OTA 服务器返回的数据无效，请检查服务器状态或 MAC 地址"
-                )
+                # 没有 MQTT 信息，直接使用配置中的 websocket_url
+                logger.info(f"OTA 返回数据没有 MQTT，使用配置中的 WebSocket URL: {self.websocket_url}")
+                return None
 
         except requests.Timeout:
             logger.error("OTA 请求超时")
@@ -157,6 +157,7 @@ class WebSocketProxy:
             logger.info(
                 f"正在创建新的客户端 websocket 连接: {websocket.remote_address}"
             )
+            logger.info(f"正在连接到服务器: {self.websocket_url}")
             # 使用正确的参数名称 additional_headers (websockets 11.0+)
             async with websockets.connect(
                 self.websocket_url, additional_headers=self.headers
@@ -282,7 +283,6 @@ class WebSocketProxy:
                                     self.audio_buffer = bytearray()
                                     self.is_first_audio = True
                                     self.total_samples = 0
-
                         except Exception as e:
                             logger.error(f"音频处理错误: {e}")
         except Exception as e:
@@ -291,7 +291,11 @@ class WebSocketProxy:
     async def handle_client_messages(self, client_ws, server_ws):
         """处理来自客户端的消息"""
         try:
+
+            logger.info(f"客服端狀態: {client_ws.state.name}")
+            logger.info(f"服務器狀態: {server_ws.state.name}")
             async for message in client_ws:
+                logger.info("handle_client_messages111...")
                 # 文字数据
                 if isinstance(message, str):
                     await server_ws.send(message)
@@ -311,8 +315,12 @@ class WebSocketProxy:
                             logger.warning("音频数据为空")
                     except Exception as e:
                         logger.error(f"音频处理错误: {e}")
+        except ConnectionClosedOK:
+            logger.info("客户端连接正常关闭")
+        except ConnectionClosed as e:
+            logger.warning(f"客户端连接异常关闭: {e.code} {e.reason}")
         except Exception as e:
-            logger.error(f"客户端信息处理异常: {e}")
+            logger.error(f"客户端消息处理异常: {e}")
 
     async def main(self):
         """启动代理服务器"""
