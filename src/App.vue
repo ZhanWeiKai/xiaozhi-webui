@@ -195,21 +195,30 @@ const ensureBackendUrl = async () => {
 }
 
 onMounted(async () => {
-  const loaded = settingStore.loadFromLocal();
-  if (loaded) {
-    ElMessage.success("本地配置加载成功");
-    wsService.connect(settingStore.wsProxyUrl);
-    return;
+  // Always use hardcoded HTTPS config for production
+  // Clear old localStorage cache if it contains insecure URLs
+  const localConfig = localStorage.getItem('settings')
+  if (localConfig && localConfig.includes('ws://')) {
+    console.log("[App][onMounted] 清除旧的 HTTP 配置缓存")
+    localStorage.removeItem('settings')
   }
 
-  await ensureBackendUrl();
-  const fetchOk = await settingStore.fetchConfig();
-  if (fetchOk) {
-    settingStore.saveToLocal();
-    ElMessage.warning("未发现本地配置，默认配置已加载并缓存至本地");
-    wsService.connect(settingStore.wsProxyUrl);
-  } else {
-    ElMessage.error("连接失败，请检查服务器是否启动");
+  // Load from localStorage (will be empty if we just cleared it)
+  settingStore.loadFromLocal();
+
+  // Always use hardcoded default config (HTTPS)
+  ElMessage.success("使用默认配置连接");
+  wsService.connect(settingStore.wsProxyUrl);
+
+  // Optionally try to fetch latest config from backend
+  try {
+    const fetchOk = await settingStore.fetchConfig();
+    if (fetchOk) {
+      settingStore.saveToLocal();
+      console.log("[App][onMounted] 配置已从后端更新");
+    }
+  } catch (e) {
+    console.warn("[App][onMounted] 无法从后端获取配置，使用默认配置", e);
   }
 });
 

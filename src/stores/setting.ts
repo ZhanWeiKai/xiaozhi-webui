@@ -12,16 +12,27 @@ type ConfigData = {
 	device_id: string
 }
 
+// Hardcoded default config for production deployment (HTTPS)
+const DEFAULT_CONFIG = {
+	ws_url: "wss://xiaozhi-ws.jamesweb.org",
+	ws_proxy_url: "wss://xiaozhi-ws.jamesweb.org",
+	ota_version_url: "https://xiaozhi.jamesweb.org/api/ota",
+	backend_url: "https://xiaozhi.jamesweb.org/api",
+	token_enable: true,
+	token: "N9tieuHFjJ_u2BYkJuzzXxhXV_8-5MYSl_pmQX-HnY.1770887401",
+	device_id: "48:45:e6:cf:b7:2d"
+}
+
 export const useSettingStore = defineStore('setting', () => {
-	// state
+	// state - initialized with hardcoded defaults
 	const sessionId = ref<string>("")
-	const deviceId = ref<string>("")
-	const wsUrl = ref<string>("")
-	const wsProxyUrl = ref<string>("")
-	const otaVersionUrl = ref<string>("")
-	const backendUrl = ref<string>("")
-	const tokenEnable = ref<boolean>(false)
-	const token = ref<string>("")
+	const deviceId = ref<string>(DEFAULT_CONFIG.device_id)
+	const wsUrl = ref<string>(DEFAULT_CONFIG.ws_url)
+	const wsProxyUrl = ref<string>(DEFAULT_CONFIG.ws_proxy_url)
+	const otaVersionUrl = ref<string>(DEFAULT_CONFIG.ota_version_url)
+	const backendUrl = ref<string>(DEFAULT_CONFIG.backend_url)
+	const tokenEnable = ref<boolean>(DEFAULT_CONFIG.token_enable)
+	const token = ref<string>(DEFAULT_CONFIG.token)
 	const visible = ref<boolean>(false)
 	
 	const configRefMap: Record<string, Ref<string | boolean>> = {
