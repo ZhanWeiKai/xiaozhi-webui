@@ -58,7 +58,6 @@ chatStateManager.on(ChatEvent.AI_START_SPEAKING, () => {
 
 // ---------- WebSocket 配置 start ----------
 import { WebSocketService } from "./services/WebSocketManager";
-const chatContainerRef = ref<InstanceType<typeof ChatContainer> | null>(null);
 const wsService = new WebSocketService({
   decodeAudioData: (arrayBuffer: ArrayBuffer) => audioService.decodeAudioData(arrayBuffer),
   settingStore: settingStore,
@@ -85,47 +84,19 @@ const wsService = new WebSocketService({
   },
   async onTextMessage(message) {
     console.log("[WebSocketService][onTextmessage] Text message received:", message);
-
     switch (message.type) {
       case "hello":
         const helloMessage = message as HelloResponse;
         settingStore.sessionId = helloMessage.session_id!;
         console.log("[WebSocketService][onTextmessage] Session ID:", helloMessage.session_id);
         break;
-
-      case "stt":
-        const sttMessage = message as UserEcho;
-        if (sttMessage.text?.trim()) {
-          chatContainerRef.value?.appendMessage("user", sttMessage.text);
-        }
-        break;
-
-      case "llm":
-        const emotionMessage = message as AIResponse_Emotion;
-        if (emotionMessage.text?.trim()) {
-          chatContainerRef.value?.appendMessage("ai", emotionMessage.text);
-        }
-        break;
-
-      case "tts":
-        switch (message.state) {
-          case "start":
-            break;
-          case "sentence_start":
-            const textMessage = message as AIResponse_Text;
-            chatContainerRef.value?.appendMessage("ai", textMessage.text!);
-            break;
-          case "sentence_end":
-            break;
-        }
-        break;
     }
   },
   onConnect() {
-    ElMessage.success("连接成功");
+    console.log("连接成功");
   },
   onDisconnect() {
-    ElMessage.error("连接已断开，正在尝试重连");
+    console.log("连接已断开，正在尝试重连");
     setTimeout(() => {
       wsService.connect(settingStore.wsProxyUrl);
     }, 3000);
@@ -133,11 +104,9 @@ const wsService = new WebSocketService({
 })
 // ---------- WebSocket 配置 end ------------
 
-import Header from './components/Header/index.vue'
+import ConnectionStatus from './components/Header/ConnectionStatus.vue'
 import SettingPanel from './components/Setting/index.vue'
 import VoiceCall from "./components/VoiceCall.vue";
-import InputField from "./components/InputField.vue";
-import ChatContainer from './components/ChatContainer.vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 
 const sendAbortMessage = () => {
@@ -146,20 +115,6 @@ const sendAbortMessage = () => {
     session_id: settingStore.sessionId,
   };
   wsService.sendTextMessage(abortMessage)
-}
-
-const sendMessage = (text: string) => {
-  const textMessage: UserMessage = {
-    type: "listen",
-    state: "detect",
-    text: text,
-    source: "text",
-  };
-  if (chatStateManager.currentState.value == ChatState.AI_SPEAKING) {
-    sendAbortMessage();
-    audioService.clearAudioQueue();
-  }
-  wsService.sendTextMessage(textMessage)
 }
 
 const isVoiceCallVisible = ref<boolean>(false);
@@ -186,7 +141,7 @@ const ensureBackendUrl = async () => {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       inputValue: 'http://localhost:8081',
-      inputPattern: /^http(s?):\/\/.+/, 
+      inputPattern: /^http(s?):\/\/.+/,
       inputErrorMessage: '请输入有效的服务器地址(http:// 或 https:// 开头)',
     });
     settingStore.backendUrl = backendUrl;
@@ -207,7 +162,6 @@ onMounted(async () => {
   settingStore.loadFromLocal();
 
   // Always use hardcoded default config (HTTPS)
-  ElMessage.success("使用默认配置连接");
   wsService.connect(settingStore.wsProxyUrl);
 
   // Optionally try to fetch latest config from backend
@@ -231,28 +185,92 @@ onUnmounted(() => {
 
 <template>
   <div class="app-container">
-    <Header :connection-status="wsService.connectionStatus.value" />
-    <ChatContainer class="chat-container" ref="chatContainerRef" />
-    <InputField 
-      @send-message="(text: string) => sendMessage(text)" 
-      @phone-call-button-clicked="showVoiceCallPanel"
-    />
+    <!-- 左上角状态 -->
+    <ConnectionStatus :connection-status="wsService.connectionStatus.value" />
+
+    <!-- 中央通话按钮 -->
+    <div class="call-button-container">
+      <button class="call-button" @click="showVoiceCallPanel">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- 设置面板 -->
     <SettingPanel />
-    <VoiceCall 
-      :voice-animation-manager="voiceAnimationManager" 
+
+    <!-- 语音通话面板 -->
+    <VoiceCall
+      :voice-animation-manager="voiceAnimationManager"
       :chat-state-manager="chatStateManager"
-      :is-visible="isVoiceCallVisible" 
-      @on-shut-down="closeVoiceCallPanel" 
+      :is-visible="isVoiceCallVisible"
+      @on-shut-down="closeVoiceCallPanel"
     />
   </div>
 </template>
 
 <style>
+/* 全局重置 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  background-color: #FFFFFF;
+}
+
+#app {
+  height: 100%;
+  background-color: #FFFFFF;
+}
+
 .app-container {
   position: relative;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
   height: 100vh;
+  background-color: #FFFFFF;
   overflow: hidden;
+}
+
+.call-button-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.call-button {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: none;
+  background-color: #10b981;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.call-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+}
+
+.call-button:active {
+  transform: scale(0.95);
+}
+
+.call-button svg {
+  width: 36px;
+  height: 36px;
 }
 </style>

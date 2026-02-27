@@ -1,8 +1,6 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
-import { useSettingStore } from '@/stores/setting';
 
-const settingStore = useSettingStore();
 const connectionStatusClass = computed(() => props.connectionStatus);
 const connectionStatusText = computed(() => {
     const texts = {
@@ -20,74 +18,68 @@ const props = defineProps<{
 
 <template>
     <div class="status-container">
-        <div :class="['connection-status', connectionStatusClass]" ref="connectionState">
+        <div :class="['connection-status', connectionStatusClass]">
             {{ connectionStatusText }}
         </div>
-        <div class="device-id">设备ID：{{ settingStore.deviceId }}</div>
     </div>
 </template>
 
 <style scoped lang="less">
 .status-container {
-    display: flex;
-    align-items: center;
-    padding: 0.75rem;
-    height: 3.5rem;
-    font-size: 0.85rem;
-    background-color: #f9fafb;
-    border-bottom: 1px solid #e5e7eb;
+    position: fixed;
+    top: 0;
+    left: 0;
+    padding: 1rem;
+    z-index: 100;
 
     .connection-status {
         display: flex;
         align-items: center;
-        padding: 4px 10px;
+        padding: 6px 12px;
         border-radius: 1rem;
+        font-size: 0.9rem;
 
         &.connected {
-            color: green;
-            background-color: rgba(0, 255, 0, 0.1);
+            color: #10b981;
+            background-color: rgba(16, 185, 129, 0.1);
 
             &::before {
                 content: "";
                 width: 8px;
                 height: 8px;
                 border-radius: 50%;
-                background-color: green;
-                margin-right: 5px;
+                background-color: #10b981;
+                margin-right: 8px;
             }
         }
 
         &.disconnected {
-            color: grey;
-            background-color: rgba(0, 0, 0, 0.1);
+            color: #9ca3af;
+            background-color: rgba(156, 163, 175, 0.1);
 
             &::before {
                 content: "";
                 width: 8px;
                 height: 8px;
                 border-radius: 50%;
-                background-color: grey;
-                margin-right: 5px;
+                background-color: #9ca3af;
+                margin-right: 8px;
             }
         }
 
         &.error {
-            color: red;
-            background-color: rgba(255, 0, 0, 0.1);
+            color: #ef4444;
+            background-color: rgba(239, 68, 68, 0.1);
 
             &::before {
                 content: "";
                 width: 8px;
                 height: 8px;
                 border-radius: 50%;
-                background-color: red;
-                margin-right: 5px;
+                background-color: #ef4444;
+                margin-right: 8px;
             }
         }
-    }
-
-    .device-id {
-        margin-left: 1rem;
     }
 }
 </style>
