@@ -7,6 +7,8 @@ const props = defineProps<{
     isVisible: boolean;
     voiceAnimationManager: VoiceAnimationManager;
     chatStateManager: ChatStateManager;
+    userText: string;
+    aiText: string;
 }>();
 
 const emit = defineEmits<{
@@ -22,8 +24,27 @@ const emit = defineEmits<{
             </div>
             <div v-for="i in 3" :key="i" :class="`ripple-${i}`"></div>
         </div>
+
+        <!-- 中间文字显示区域 -->
+        <div class="text-container">
+            <!-- 用户说话时的文字 -->
+            <div v-if="props.userText" class="user-text">
+                {{ props.userText }}
+            </div>
+            <!-- AI 回复时的文字 -->
+            <div v-if="props.aiText" class="ai-text">
+                {{ props.aiText }}
+            </div>
+            <!-- 无文字时显示提示 -->
+            <div v-if="!props.userText && !props.aiText" class="hint-text">
+                <span v-if="props.chatStateManager.currentState.value === ChatState.USER_SPEAKING">正在聆听...</span>
+                <span v-else-if="props.chatStateManager.currentState.value === ChatState.AI_SPEAKING">正在回复...</span>
+                <span v-else>请说话</span>
+            </div>
+        </div>
+
         <div class="voice-wave-container">
-            <div 
+            <div
                 class="voice-wave"
                 :class="{ active: props.chatStateManager.currentState.value === ChatState.USER_SPEAKING }"
                 :style="{ '--wave-height': `${voiceAnimationManager.voiceWaveHeight.value}px` }"
@@ -69,6 +90,41 @@ const emit = defineEmits<{
             border-radius: 50%;
             box-shadow: 1px 1px 10px 1px rgba(0, 0, 0, 0.2);
             cursor: pointer;
+        }
+    }
+
+    /* 中间文字显示区域 */
+    .text-container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 1rem 2rem;
+        min-height: 120px;
+
+        .user-text,
+        .ai-text {
+            font-size: 1.25rem;
+            line-height: 1.6;
+            text-align: center;
+            max-width: 90%;
+            word-break: break-word;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .user-text {
+            color: #10b981;
+        }
+
+        .ai-text {
+            color: #ffffff;
+        }
+
+        .hint-text {
+            color: #6b7280;
+            font-size: 1rem;
+            animation: pulse 2s ease-in-out infinite;
         }
     }
 
@@ -171,9 +227,9 @@ const emit = defineEmits<{
         display: flex;
         justify-content: center;
         align-items: center;
-        margin: 100px auto;
-        width: 10rem;
-        height: 10rem;
+        margin: 60px auto;
+        width: 8rem;
+        height: 8rem;
 
         .voice-avatar {
             position: relative;
@@ -237,6 +293,26 @@ const emit = defineEmits<{
     100% {
         height: 2px;
         opacity: 0.6;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 0.6;
+    }
+    50% {
+        opacity: 1;
     }
 }
 </style>

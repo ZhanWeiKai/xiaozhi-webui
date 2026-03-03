@@ -50,11 +50,19 @@ audioService.onProcess((audioLevel: number, audioData: Float32Array) => {
 chatStateManager.on(ChatEvent.USER_START_SPEAKING, async () => {
   audioService.stopPlaying();
   audioService.clearAudioQueue();
+  // 用户开始说话时清空 AI 文字
+  aiText.value = "";
 })
 chatStateManager.on(ChatEvent.AI_START_SPEAKING, () => {
   audioService.playAudio();
+  // AI 开始说话时清空用户文字
+  userText.value = "";
 })
 // ---------- 语音对话配置 end ----------------
+
+// ---------- 通话文字状态 ----------
+const userText = ref<string>("");
+const aiText = ref<string>("");
 
 // ---------- WebSocket 配置 start ----------
 import { WebSocketService } from "./services/WebSocketManager";
@@ -90,6 +98,27 @@ const wsService = new WebSocketService({
         settingStore.sessionId = helloMessage.session_id!;
         console.log("[WebSocketService][onTextmessage] Session ID:", helloMessage.session_id);
         break;
+      case "stt":
+        // 用户语音转文字
+        const sttMessage = message as UserEcho;
+        if (sttMessage.text?.trim()) {
+          userText.value = sttMessage.text;
+        }
+        break;
+      case "llm":
+        // LLM 回复
+        const llmMessage = message as AIResponse_Emotion;
+        if (llmMessage.text?.trim()) {
+          aiText.value = llmMessage.text;
+        }
+        break;
+      case "tts":
+        // TTS 分句
+        const ttsMessage = message as AIResponse_Text;
+        if (ttsMessage.state === "sentence_start" && ttsMessage.text?.trim()) {
+          aiText.value = ttsMessage.text;
+        }
+        break;
     }
   },
   onConnect() {
@@ -122,6 +151,9 @@ const isVoiceCallVisible = ref<boolean>(false);
 const showVoiceCallPanel = async () => {
   sendAbortMessage();
   audioService.clearAudioQueue();
+  // 清空文字
+  userText.value = "";
+  aiText.value = "";
   isVoiceCallVisible.value = true;
   await audioService.prepareMediaResources();
   if (chatStateManager.currentState.value != ChatState.IDLE) {
@@ -133,6 +165,9 @@ const closeVoiceCallPanel = async () => {
   isVoiceCallVisible.value = false;
   sendAbortMessage();
   audioService.stopMediaResources();
+  // 清空文字
+  userText.value = "";
+  aiText.value = "";
 };
 
 const ensureBackendUrl = async () => {
@@ -205,6 +240,8 @@ onUnmounted(() => {
       :voice-animation-manager="voiceAnimationManager"
       :chat-state-manager="chatStateManager"
       :is-visible="isVoiceCallVisible"
+      :user-text="userText"
+      :ai-text="aiText"
       @on-shut-down="closeVoiceCallPanel"
     />
   </div>
