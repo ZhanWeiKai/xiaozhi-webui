@@ -146,11 +146,9 @@ export class AudioService {
     // 处理节点的出口回调函数，用于接收 process 函数处理后的音频数据
     this._processorNode.port.onmessage = (e: MessageEvent) => {
       if (!(e.data instanceof Float32Array)) {
-        console.warn("[AudioManager][processorNode.port.onmessage] Unexpected data format:", typeof e.data);
         return;
       }
       const audioLevel = this.detectAudioLevel(e.data);
-      console.log("[AudioManager][processorNode.port.onmessage] Audio Level:", audioLevel.toFixed(2));
       this._onProcess?.(audioLevel, e.data);
     };
   }
