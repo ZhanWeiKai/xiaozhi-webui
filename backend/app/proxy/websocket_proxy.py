@@ -52,7 +52,7 @@ class WebSocketProxy:
         self._update_ota_address()
 
     def _update_ota_address(self):
-        MAC_ADDR = get_mac_address()
+        MAC_ADDR = self.device_id  # 使用配置文件中的 DEVICE_ID，确保与 WebSocket 连接一致
 
         headers = {"Device-Id": MAC_ADDR, "Content-Type": "application/json"}
 
