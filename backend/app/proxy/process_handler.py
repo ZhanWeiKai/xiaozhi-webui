@@ -15,11 +15,9 @@ def run_proxy():
         proxy = WebSocketProxy(
             device_id=configuration.get_str("DEVICE_ID"),
             client_id=configuration.get_str("CLIENT_ID"),
-            websocket_url=configuration.get_str("WS_URL"),
             ota_version_url=configuration.get_str("OTA_VERSION_URL"),
             proxy_host=urlparse(ws_proxy_url).hostname,
             proxy_port=urlparse(ws_proxy_url).port,
-            token_enable=configuration.get_bool("TOKEN_ENABLE"),
             token=configuration.get_str("TOKEN"),
         )
 

@@ -17,11 +17,9 @@ class ConfigManager:
 
     def __init__(self):
         self._default_config = {
-            "WS_URL": "wss://api.tenclass.net/xiaozhi/v1/",
             "WS_PROXY_URL": "ws://0.0.0.0:5000",
-            "OTA_VERSION_URL": "https://api.tenclass.net/xiaozhi/ota/",
-            "TOKEN_ENABLE": True,
-            "TOKEN": "test_token",
+            "OTA_VERSION_URL": "https://xiaozhi.jamesweb.org/api/ota/",
+            "TOKEN": "B88nOio0ygF_UlrdHsPlcB1LZymu6So30SOO5_h2MD8.1770014637",
         }
         self._config = {}
         self._init_config()

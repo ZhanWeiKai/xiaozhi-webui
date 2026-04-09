@@ -6,32 +6,18 @@ export const useSettingStore = defineStore('setting', () => {
 	// state
 	const sessionId = ref<string>("")
 	const wsProxyUrl = ref<string>("")
-	const tokenEnable = ref<boolean>(false)
-	const token = ref<string>("")
 	const visible = ref<boolean>(false)
 
-	const configRefMap: Record<string, Ref<string | boolean>> = {
+	const configRefMap: Record<string, Ref<string>> = {
 		ws_proxy_url: wsProxyUrl,
-		token_enable: tokenEnable,
-		token: token,
 	}
 
 	const saveToLocal = (): boolean => {
 		const configJson = {
 			ws_proxy_url: wsProxyUrl.value,
-			token_enable: tokenEnable.value,
-			token: token.value,
 		}
 
-		// 通过标记切换字段必填需求，避免可选项为空时出现误判
-		const requiredWhenEnabled: Record<string, () => boolean> = {
-			token: () => tokenEnable.value,
-		}
-		const dataOK = Object.entries(configJson).every(([key, value]) => {
-			const isRequired = requiredWhenEnabled[key]?.() ?? true
-			if (!isRequired) return true
-			return value !== ""
-		})
+		const dataOK = Object.values(configJson).every((value) => value !== "")
 
 		if (dataOK) {
 			localStorage.setItem('settings', JSON.stringify(configJson))
@@ -69,8 +55,6 @@ export const useSettingStore = defineStore('setting', () => {
 	return {
 		sessionId,
 		wsProxyUrl,
-		tokenEnable,
-		token,
 		visible,
 		updateConfig,
 		saveToLocal,

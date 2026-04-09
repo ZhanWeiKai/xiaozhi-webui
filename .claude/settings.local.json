@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ssh axonex@10.88.1.144 \"docker exec xiaozhi-esp32-server-db mysql -uroot -p123456 xiaozhi_esp32_server -e \\\\\"SELECT param_value FROM sys_params WHERE param_code='server.secret'\\\\\"\")",
+      "Bash(ssh axonex@10.88.1.144 \"cat ~/xiaozhi-webui/backend/config/config.json 2>/dev/null || echo 'FILE_NOT_FOUND'\")",
+      "Bash(python3 -c \"\nimport hmac, base64, hashlib, time\nauth_key = 'b5107e67-adb3-4fcb-bef6-6579cdc5b5cc'\nclient_id = 'c0031d0d-a87e-4bf3-bb6d-e8911964d909'\ndevice_id = '80:08:34:2c:4f:98'\nts = int\\(time.time\\(\\)\\)\ncontent = f'{client_id}|{device_id}|{ts}'\nsig = hmac.new\\(auth_key.encode\\('utf-8'\\), content.encode\\('utf-8'\\), hashlib.sha256\\).digest\\(\\)\nsignature = base64.urlsafe_b64encode\\(sig\\).decode\\('utf-8'\\).rstrip\\('='\\)\ntoken = f'{signature}.{ts}'\nprint\\(token\\)\n\")",
+      "Bash(python -c \"import hmac, base64, hashlib, time\nauth_key = 'b5107e67-adb3-4fcb-bef6-6579cdc5b5cc'\nclient_id = 'c0031d0d-a87e-4bf3-bb6d-e8911964d909'\ndevice_id = '80:08:34:2c:4f:98'\nts = int\\(time.time\\(\\)\\)\ncontent = f'{client_id}|{device_id}|{ts}'\nsig = hmac.new\\(auth_key.encode\\('utf-8'\\), content.encode\\('utf-8'\\), hashlib.sha256\\).digest\\(\\)\nsignature = base64.urlsafe_b64encode\\(sig\\).decode\\('utf-8'\\).rstrip\\('='\\)\ntoken = f'{signature}.{ts}'\nprint\\(token\\)\")",
+      "Bash(python -c \"import requests, json\nheaders = {'Device-Id': '80:08:34:2c:4f:98', 'Content-Type': 'application/json'}\npayload = {'version': 2, 'flash_size': 16777216, 'psram_size': 0, 'minimum_free_heap_size': 8318916, 'mac_address': '80:08:34:2c:4f:98', 'uuid': 'c0031d0d-a87e-4bf3-bb6d-e8911964d909', 'chip_model_name': 'esp32s3', 'chip_info': {'model': 9, 'cores': 2, 'revision': 2, 'features': 18}, 'application': {'name': 'xiaozhi', 'version': '1.1.2', 'idf_version': 'v5.3.2-dirty'}, 'partition_table': [], 'ota': {'label': 'factory'}, 'board': {'type': 'bread-compact-wifi', 'ip': '127.0.0.1', 'mac': '80:08:34:2c:4f:98'}}\nr = requests.post\\('https://xiaozhi.jamesweb.org/api/ota/', headers=headers, json=payload, timeout=10\\)\nprint\\(f'Status: {r.status_code}'\\)\nprint\\(json.dumps\\(r.json\\(\\), indent=2, ensure_ascii=False\\)\\)\")",
+      "Bash(ssh axonex@10.88.1.144 \"docker exec 3a0 find /opt/xiaozhi-esp32-server -name 'websocket_server.py' -o -name '*websocket*' 2>/dev/null | head -20\")",
+      "Bash(ssh axonex@10.88.1.144 \"docker exec 3a0 cat /opt/xiaozhi-esp32-server/core/websocket_server.py\")",
+      "Bash(ssh axonex@10.88.1.144 \"docker exec 3a0 cat /opt/xiaozhi-esp32-server/core/auth.py\")",
+      "Bash(ssh axonex@10.88.1.144 \"docker exec 3a0 find /opt/xiaozhi-esp32-server -name 'ota_handler.py' -o -name '*ota*' 2>/dev/null | grep -v __pycache__ | head -10\")",
+      "Bash(ssh axonex@10.88.1.144 \"docker exec 3a0 cat /opt/xiaozhi-esp32-server/core/api/ota_handler.py\")"
+    ]
+  }
+}
