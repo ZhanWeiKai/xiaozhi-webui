@@ -42,7 +42,8 @@
       "Bash(ssh axonex@10.88.1.144 \"kill 998492 2>/dev/null; echo done\")",
       "Bash(ssh axonex@10.88.1.144 \"sleep 1 && cd ~/xiaozhi-webui/backend && nohup ./venv/bin/python main.py > ~/xiaozhi-webui/backend.log 2>&1 &\")",
       "Bash(ssh axonex@10.88.1.144 \"sleep 5 && tail -20 ~/xiaozhi-webui/backend.log\")",
-      "Bash(ssh axonex@10.88.1.144 \"ss -tlnp | grep -E ':5000|:8081'\")"
+      "Bash(ssh axonex@10.88.1.144 \"ss -tlnp | grep -E ':5000|:8081'\")",
+      "Bash(cd C:/claude-project/xiaozhi-webui/xiaozhi-webui-4-9/xiaozhi-webui && scp -r dist/* axonex@10.88.1.144:/tmp/webui-frontend-new/ && ssh axonex@10.88.1.144 'printf \"Aimo123456\\\\n\" | sudo -S rm -rf /var/www/xiaozhi-webui/* && printf \"Aimo123456\\\\n\" | sudo -S cp -r /tmp/webui-frontend-new/* /var/www/xiaozhi-webui/ && printf \"Aimo123456\\\\n\" | sudo -S chown -R www-data:www-data /var/www/xiaozhi-webui && echo \"done\"')"
     ]
   }
 }

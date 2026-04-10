@@ -190,7 +190,7 @@ const ensureProxyUrl = async () => {
       {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
-        inputValue: "ws://localhost:5000",
+        inputValue: "wss://xiaozhi.jamesweb.org/ws/",
         inputPattern: wsMatcher,
         inputErrorMessage: "请输入有效的服务器地址(ws:// 或 wss:// 开头)",
       }

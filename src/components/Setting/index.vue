@@ -24,7 +24,7 @@ const handleQuit = () => {
         <input
           v-model="settingStore.wsProxyUrl"
           type="text"
-          placeholder="例如: ws://localhost:5000"
+          placeholder="例如: wss://xiaozhi.jamesweb.org/ws/"
         />
       </div>
     </div>
