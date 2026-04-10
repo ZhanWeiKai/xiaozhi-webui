@@ -41,3 +41,4 @@ config/
 
 # Others
 *.bat
+.claude/

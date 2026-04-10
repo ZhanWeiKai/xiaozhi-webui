@@ -433,3 +433,83 @@ def verify_token(self, token: str, client_id: str, username: str) -> bool:
 - 自动配置：通过 OTA 动态获取 WebSocket 地址，避免硬编码
 - 反馈动效：（语音对话时）用户的说话波形 + 小智回答时的头像缩放动画
 - 移动适配：支持移动端配置服务器地址
+
+---
+
+## 部署到服务器
+
+### 服务器信息
+
+- SSH: `axonex@10.88.1.144`
+- 后端目录: `~/xiaozhi-webui/backend/`
+- 前端目录: `/var/www/xiaozhi-webui/`（nginx 托管，端口 8100）
+
+### 服务器 config.json（不要用本地的值覆盖）
+
+```json
+{
+    "WS_PROXY_URL": "ws://0.0.0.0:5000",
+    "OTA_VERSION_URL": "http://127.0.0.1:8002/xiaozhi/ota/",
+    "TOKEN": "ggQFhyfnK0jwksonYA8TAEg9BX6ke9OPrRS7MwT8Hg4.1772628453",
+    "CLIENT_ID": "4904b5d9-262a-46b7-9b3b-792205fb8689",
+    "DEVICE_ID": "52:45:c6:a0:f1:d8"
+}
+```
+
+### 部署步骤（标准流程）
+
+```bash
+# 1. 本地构建前端
+pnpm build-only
+
+# 2. 停止旧后端
+ssh axonex@10.88.1.144 "pkill -9 -f 'python.*main.py'; fuser -k 5000/tcp 2>/dev/null; fuser -k 8081/tcp 2>/dev/null"
+
+# 3. 备份服务器 config.json
+ssh axonex@10.88.1.144 "cp ~/xiaozhi-webui/backend/config/config.json ~/xiaozhi-webui/backend/config/config.json.bak"
+
+# 4. 删除旧代码，重新上传（避免旧文件残留）
+ssh axonex@10.88.1.144 "rm -rf ~/xiaozhi-webui/backend/app ~/xiaozhi-webui/backend/libs"
+scp -r backend/app backend/libs backend/main.py backend/pyproject.toml \
+    axonex@10.88.1.144:~/xiaozhi-webui/backend/
+
+# 5. 确认 config.json 未被覆盖（若被覆盖则从备份恢复）
+ssh axonex@10.88.1.144 "cat ~/xiaozhi-webui/backend/config/config.json"
+
+# 6. 覆盖前端文件
+scp -r dist/* axonex@10.88.1.144:/tmp/webui-frontend-new/
+ssh axonex@10.88.1.144 "sudo rm -rf /var/www/xiaozhi-webui/* && sudo cp -r /tmp/webui-frontend-new/* /var/www/xiaozhi-webui/ && sudo chown -R www-data:www-data /var/www/xiaozhi-webui"
+
+# 7. 重启 nginx
+ssh axonex@10.88.1.144 "sudo nginx -t && sudo systemctl restart nginx"
+
+# 8. 启动后端
+ssh axonex@10.88.1.144 "cd ~/xiaozhi-webui/backend && nohup ./venv/bin/python main.py > ~/xiaozhi-webui/backend.log 2>&1 &"
+
+# 9. 验证
+ssh axonex@10.88.1.144 "tail -30 ~/xiaozhi-webui/backend.log"
+```
+
+### 实际部署记录（2026-04-09）
+
+1. **本地构建前端**：`pnpm build-only`，产物在 `dist/`
+
+2. **停止旧后端**：服务器上 root 的 `python main.py` 进程需要 sudo 杀掉，杀掉后会自动重启
+
+3. **备份 config.json**：`cp config.json config.json.bak`
+
+4. **覆盖后端代码**：`scp -r backend/app backend/libs backend/main.py backend/pyproject.toml` 到服务器
+
+5. **踩坑 - 旧文件残留**：`scp -r` 只上传不删除，服务器上旧的 `app/router/`、`app/constants.py` 还在，导致 `ImportError`。解决：删掉 `app/` 和 `libs/` 重新上传
+
+6. **踩坑 - config.json 是旧格式**：服务器上还带着 `WS_URL`、`TOKEN_ENABLE` 等旧字段，重写为新格式
+
+7. **踩坑 - OTA 端口错误**：文档写的 `8003` 返回 404，实际 OTA 接口在 `8002`，改了 `OTA_VERSION_URL`
+
+8. **覆盖前端文件**：上传 `dist/*` 到 `/tmp/webui-frontend-new/`，然后 `sudo rm -rf /var/www/xiaozhi-webui/*` 后复制过去
+
+9. **重启 nginx**：`sudo systemctl restart nginx`（没改配置）
+
+10. **启动后端**：`nohup ./venv/bin/python main.py > backend.log 2>&1 &`
+
+11. **验证成功**：日志显示 OTA 获取到 WebSocket 地址和 Token，代理在 `0.0.0.0:5000` 启动
