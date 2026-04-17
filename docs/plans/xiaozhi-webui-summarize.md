@@ -513,3 +513,112 @@ ssh axonex@10.88.1.144 "tail -30 ~/xiaozhi-webui/backend.log"
 10. **启动后端**：`nohup ./venv/bin/python main.py > backend.log 2>&1 &`
 
 11. **验证成功**：日志显示 OTA 获取到 WebSocket 地址和 Token，代理在 `0.0.0.0:5000` 启动
+
+---
+
+## Docker 部署方案
+
+### 为什么用 Docker
+
+- 避免 `__pycache__` 缓存导致代码更新不生效
+- 避免 root 进程自动重启占用端口冲突
+- 更新代码只需重新构建镜像，干净可靠
+
+### 第一步：本地创建 Dockerfile
+
+在 `backend/` 目录下创建 `Dockerfile`：
+
+```dockerfile
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# 安装系统依赖（opus）
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libopus-dev && rm -rf /var/lib/apt/lists/*
+
+# 安装 Python 依赖
+COPY pyproject.toml .
+RUN pip install --no-cache-dir websockets numpy requests colorlog opuslib
+
+# 复制代码
+COPY app/ app/
+COPY libs/ libs/
+COPY main.py .
+
+# 配置文件通过 volume 挂载，不打包进镜像
+VOLUME /app/config
+
+EXPOSE 5000
+
+CMD ["python", "main.py"]
+```
+
+### 第二步：上传代码到服务器，构建镜像
+
+```bash
+# 上传后端代码到服务器临时目录（注意 scp -r backend/ 会多一层目录）
+scp -r backend/* axonex@100.69.157.38:/tmp/xiaozhi-webui-backend-build/
+
+# SSH 到服务器构建镜像
+ssh axonex@100.69.157.38
+cd /tmp/xiaozhi-webui-backend-build
+sudo docker build -t xiaozhi-webui-backend .
+```
+
+### 第三步：运行容器
+
+**必须用 `--network host`**，因为 config.json 里 OTA 地址是 `127.0.0.1:8002`，默认 bridge 模式下容器内 `127.0.0.1` 指向容器自己，连不上宿主机。
+
+```bash
+sudo docker run -d \
+  --name xiaozhi-webui-backend \
+  --restart unless-stopped \
+  --network host \
+  -v ~/xiaozhi-webui/backend/config:/app/config \
+  xiaozhi-webui-backend
+```
+
+- `--network host`：容器直接使用宿主机网络，`127.0.0.1` 指向宿主机
+- `-v ~/xiaozhi-webui/backend/config:/app/config`：挂载服务器上的 config.json，不打包进镜像
+- `--restart unless-stopped`：容器挂了自动重启
+
+### 第四步：验证
+
+```bash
+sudo docker logs -f xiaozhi-webui-backend
+```
+
+期望看到：
+```
+内网不可达，地址替换: 10.88.1.141 → xiaozhi-wstest.jamesweb.org/xiaozhi
+OTA WebSocket 地址: ws://10.88.1.141:8000/xiaozhi/v1 → wss://xiaozhi-wstest.jamesweb.org/xiaozhi/v1
+WebSocket 代理已启动: 0.0.0.0:5000
+```
+
+### 后续更新代码
+
+```bash
+# 1. 本地上传新代码
+scp -r backend/* axonex@100.69.157.38:/tmp/xiaozhi-webui-backend-build/
+
+# 2. 重新构建并启动
+ssh axonex@100.69.157.38
+cd /tmp/xiaozhi-webui-backend-build
+sudo docker build -t xiaozhi-webui-backend .
+sudo docker stop xiaozhi-webui-backend && sudo docker rm xiaozhi-webui-backend
+sudo docker run -d \
+  --name xiaozhi-webui-backend \
+  --restart unless-stopped \
+  --network host \
+  -v ~/xiaozhi-webui/backend/config:/app/config \
+  xiaozhi-webui-backend
+```
+
+### 实际部署踩坑记录（2026-04-17）
+
+1. **缺少 `opuslib` 依赖**：Dockerfile 只写了 `websockets numpy requests colorlog`，容器启动报 `No module named 'opuslib'` 反复重启。修复：加上 `opuslib`
+
+2. **容器内 `127.0.0.1` 不可达**：用 `-p 5000:5000`（bridge 模式）运行时，容器里 `127.0.0.1:8002` 指向容器自己，连不上宿主机的 xiaozhi-server。修复：改用 `--network host`
+
+3. **scp 多了一层目录**：`scp -r backend/` 传到服务器后变成 `/tmp/.../backend/`，构建时找不到 Dockerfile。修复：用 `scp -r backend/*` 或调整目录
