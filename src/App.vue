@@ -109,6 +109,7 @@ const wsService = new WebSocketService(
           const sttMessage = message as UserEcho;
           if (sttMessage.text?.trim()) {
             chatContainerRef.value?.appendMessage(Role.USER, sttMessage.text);
+            addSubtitle("user", sttMessage.text);
           }
           break;
 
@@ -116,6 +117,7 @@ const wsService = new WebSocketService(
           const emotionMessage = message as AIResponse_Emotion;
           if (emotionMessage.text?.trim()) {
             chatContainerRef.value?.appendMessage(Role.AI, emotionMessage.text);
+            addSubtitle("ai", emotionMessage.text);
           }
           break;
 
@@ -129,6 +131,7 @@ const wsService = new WebSocketService(
                 break;
               }
               chatContainerRef.value?.appendMessage(Role.AI, textMessage.text!);
+              addSubtitle("ai", textMessage.text!);
               break;
             case "start":
             case "sentence_end":
@@ -166,6 +169,17 @@ const sendMessage = (text: string) => {
 
 const isVoiceCallVisible = ref<boolean>(false);
 
+// 通话界面字幕（只保留最近 10 条）
+const subtitleMessages = ref<Array<{ type: "user" | "ai"; content: string }>>([]);
+const MAX_SUBTITLE_COUNT = 10;
+
+const addSubtitle = (type: "user" | "ai", text: string) => {
+  subtitleMessages.value.push({ type, content: text });
+  if (subtitleMessages.value.length > MAX_SUBTITLE_COUNT) {
+    subtitleMessages.value.shift();
+  }
+};
+
 const showVoiceCallPanel = async () => {
   sendAbortMessage();
   audioService.clearAudioQueue();
@@ -178,6 +192,7 @@ const showVoiceCallPanel = async () => {
 
 const closeVoiceCallPanel = async () => {
   isVoiceCallVisible.value = false;
+  subtitleMessages.value = [];
   sendAbortMessage();
   audioService.stopMediaResources();
 };
@@ -235,6 +250,7 @@ onUnmounted(() => {
       :voice-animation-manager="voiceAnimationManager"
       :chat-state-manager="chatStateManager"
       :is-visible="isVoiceCallVisible"
+      :subtitle-messages="subtitleMessages"
       @on-shut-down="closeVoiceCallPanel"
     />
   </div>

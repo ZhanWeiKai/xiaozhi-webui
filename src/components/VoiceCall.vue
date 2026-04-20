@@ -7,6 +7,7 @@ const props = defineProps<{
   isVisible: boolean;
   voiceAnimationManager: VoiceAnimationManager;
   chatStateManager: ChatStateManager;
+  subtitleMessages: Array<{ type: "user" | "ai"; content: string }>;
 }>();
 
 const emit = defineEmits<{
@@ -41,6 +42,16 @@ const emit = defineEmits<{
         }"
       >
         <div v-for="i in 10" :key="i" class="wave-line"></div>
+      </div>
+    </div>
+    <!-- 字幕区域 -->
+    <div class="subtitle-container">
+      <div
+        v-for="(msg, index) in props.subtitleMessages"
+        :key="index"
+        :class="['subtitle-line', msg.type]"
+      >
+        {{ msg.content }}
       </div>
     </div>
     <div class="button-container">
@@ -81,6 +92,41 @@ const emit = defineEmits<{
       border-radius: 50%;
       box-shadow: 1px 1px 10px 1px rgba(0, 0, 0, 0.2);
       cursor: pointer;
+    }
+  }
+
+  /* 字幕区域 */
+  .subtitle-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 0 1.5rem;
+    overflow-y: auto;
+    scrollbar-width: none;
+    max-height: 200px;
+    gap: 0.5rem;
+
+    .subtitle-line {
+      max-width: 85%;
+      padding: 0.4rem 0.8rem;
+      border-radius: 0.5rem;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      word-break: break-word;
+      animation: fadeIn 0.3s ease-in;
+      text-align: center;
+      align-self: center;
+
+      &.user {
+        background: rgba(59, 130, 246, 0.2);
+        color: #93c5fd;
+      }
+
+      &.ai {
+        background: rgba(34, 197, 94, 0.2);
+        color: #86efac;
+      }
     }
   }
 
@@ -251,6 +297,18 @@ const emit = defineEmits<{
   100% {
     height: 2px;
     opacity: 0.6;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 </style>

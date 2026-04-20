@@ -14,7 +14,7 @@ logger = getLogger(__name__)
 
 # 内网地址 → 外网地址替换映射（参考 xiaozhi-test）
 INTERNAL_EXTERNAL_MAP = {
-    "10.88.1.": "xiaozhi-wstest.jamesweb.org/xiaozhi",
+    "10.88.1.144": "xiaozhi-wstest.jamesweb.org/xiaozhi",
 }
 
 
@@ -189,6 +189,7 @@ class WebSocketProxy:
     async def proxy_handler(self, websocket):
         """来自浏览器的 WebSocket 连接"""
         try:
+            self.websocket_url = "wss://xiaozhi-wstest.jamesweb.org/xiaozhi/v1"
             ws_url = self._build_ws_url()
             logger.info(f"正在连接 xiaozhi-server: {self.websocket_url}")
 
