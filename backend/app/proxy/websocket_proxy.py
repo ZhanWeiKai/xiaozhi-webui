@@ -12,11 +12,6 @@ from logging import getLogger
 
 logger = getLogger(__name__)
 
-# 内网地址 → 外网地址替换映射（参考 xiaozhi-test）
-INTERNAL_EXTERNAL_MAP = {
-    "10.88.1.144": "xiaozhi-wstest.jamesweb.org/xiaozhi",
-}
-
 
 class WebSocketProxy:
     def __init__(
@@ -46,33 +41,6 @@ class WebSocketProxy:
         self.shutdown_event = asyncio.Event()
 
         self._update_ota_address()
-
-    def _replace_internal_url(self, url: str) -> str:
-        """内网不可达时替换为外网地址"""
-        import socket
-        parsed = urlparse(url)
-        host = parsed.hostname
-        port = parsed.port or 80
-
-        try:
-            with socket.create_connection((host, port), timeout=3):
-                logger.info(f"内网地址可达，直接使用: {host}:{port}")
-                return url
-        except (socket.timeout, OSError):
-            pass
-
-        for internal_prefix, external_domain in INTERNAL_EXTERNAL_MAP.items():
-            if internal_prefix in url:
-                new_scheme = "wss" if parsed.scheme == "ws" else parsed.scheme
-                # external_domain 已包含路径前缀（如 /xiaozhi），需去掉 parsed.path 中重复的部分
-                ext_parsed = urlparse(f"wss://{external_domain}")
-                suffix_path = parsed.path[len(ext_parsed.path):] if parsed.path.startswith(ext_parsed.path) else parsed.path
-                url = f"{new_scheme}://{external_domain}{suffix_path}"
-                if parsed.query:
-                    url += f"?{parsed.query}"
-                logger.info(f"内网不可达，地址替换: {host} → {external_domain}")
-                break
-        return url
 
     def _update_ota_address(self):
         """通过 OTA 接口获取 WebSocket 地址和 token"""
@@ -125,8 +93,8 @@ class WebSocketProxy:
                 ws_url = ws_info.get("url", "")
                 self.ota_token = ws_info.get("token", "")
 
-                self.websocket_url = self._replace_internal_url(ws_url)
-                logger.info(f"OTA WebSocket 地址: {ws_url} → {self.websocket_url}")
+                self.websocket_url = ws_url
+                logger.info(f"OTA WebSocket 地址: {self.websocket_url}")
                 logger.info(f"OTA Token 已获取: {self.ota_token[:20]}...")
             else:
                 logger.error(f"OTA 响应中没有 websocket 信息: {response_data}")
@@ -172,45 +140,15 @@ class WebSocketProxy:
 
         return header
 
-    def _get_external_url(self, url: str) -> str | None:
-        """将内网地址替换为外网地址（不做可达性检测）"""
-        for internal_prefix, external_domain in INTERNAL_EXTERNAL_MAP.items():
-            if internal_prefix in url:
-                parsed = urlparse(url)
-                new_scheme = "wss" if parsed.scheme == "ws" else parsed.scheme
-                ext_parsed = urlparse(f"wss://{external_domain}")
-                suffix_path = parsed.path[len(ext_parsed.path):] if parsed.path.startswith(ext_parsed.path) else parsed.path
-                new_url = f"{new_scheme}://{external_domain}{suffix_path}"
-                if parsed.query:
-                    new_url += f"?{parsed.query}"
-                return new_url
-        return None
-
     async def proxy_handler(self, websocket):
         """来自浏览器的 WebSocket 连接"""
         try:
-            self.websocket_url = "wss://xiaozhi-wstest.jamesweb.org/xiaozhi/v1"
             ws_url = self._build_ws_url()
             logger.info(f"正在连接 xiaozhi-server: {self.websocket_url}")
 
-            try:
-                async with websockets.connect(ws_url) as server_ws:
-                    logger.info("已连接至 xiaozhi-server")
-                    await self._handle_proxy_communication(websocket, server_ws)
-            except (OSError, ConnectionRefusedError) as e:
-                # 内网连接失败，尝试切换外网地址
-                logger.info(f"[DEBUG] 内网连接异常: {type(e).__name__}: {e}")
-                external_url = self._get_external_url(self.websocket_url)
-                logger.info(f"[DEBUG] 外网替换结果: {external_url}")
-                if external_url:
-                    logger.info(f"内网连接失败({e})，切换外网: {external_url}")
-                    self.websocket_url = external_url
-                    ws_url = self._build_ws_url()
-                    async with websockets.connect(ws_url) as server_ws:
-                        logger.info("已通过外网连接至 xiaozhi-server")
-                        await self._handle_proxy_communication(websocket, server_ws)
-                else:
-                    raise
+            async with websockets.connect(ws_url) as server_ws:
+                logger.info("已连接至 xiaozhi-server")
+                await self._handle_proxy_communication(websocket, server_ws)
 
         except ConnectionClosedOK:
             logger.info("xiaozhi-server 正常关闭连接")
