@@ -1,9 +1,14 @@
 <script lang="ts" setup>
 import { ref, computed } from "vue";
 
+const props = defineProps<{
+  disabled?: boolean;
+}>();
+
 const emit = defineEmits<{
   (e: "sendMessage", text: string): void;
   (e: "phoneCallButtonClicked"): void;
+  (e: "playTtsButtonClicked"): void;
 }>();
 
 const message = ref<string>("");
@@ -69,6 +74,11 @@ const handleSendButtonClick = () => {
         />
       </svg>
     </button>
+    <button id="play-tts" :disabled="props.disabled" @click="emit('playTtsButtonClicked')">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+      </svg>
+    </button>
     <button id="phone-call" @click="emit('phoneCallButtonClicked')">
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -122,7 +132,8 @@ const handleSendButtonClick = () => {
   }
 
   #send-message,
-  #phone-call {
+  #phone-call,
+  #play-tts {
     padding: 0.7rem;
     width: 3rem;
     height: 3rem;
@@ -138,6 +149,15 @@ const handleSendButtonClick = () => {
 
   #phone-call {
     background-color: #10b981;
+  }
+
+  #play-tts {
+    background-color: #f59e0b;
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
   }
 }
 </style>

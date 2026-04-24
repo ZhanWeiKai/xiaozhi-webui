@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useSettingStore } from "./stores/setting";
 import {
   type HelloResponse,
@@ -167,6 +167,18 @@ const sendMessage = (text: string) => {
   wsService.sendTextMessage(textMessage);
 };
 
+const playLastAiMessage = () => {
+  const msgs = chatContainerRef.value?.messages;
+  if (!msgs) return;
+  const lastAiMsg = [...msgs].reverse().find((m) => m.type === "ai");
+  if (!lastAiMsg) return;
+  wsService.sendTextMessage(JSON.stringify({ type: "tts", text: lastAiMsg.content }));
+};
+
+const isAiSpeaking = computed(() => {
+  return chatStateManager.currentState.value === ChatState.AI_SPEAKING;
+});
+
 const isVoiceCallVisible = ref<boolean>(false);
 
 // 通话界面字幕（只保留最近 10 条）
@@ -242,8 +254,10 @@ onUnmounted(() => {
     <Header :connection-status="wsService.connectionStatus.value" />
     <ChatContainer class="chat-container" ref="chatContainerRef" />
     <InputField
+      :disabled="isAiSpeaking"
       @send-message="(text: string) => sendMessage(text)"
       @phone-call-button-clicked="showVoiceCallPanel"
+      @play-tts-button-clicked="playLastAiMessage"
     />
     <SettingPanel />
     <VoiceCall

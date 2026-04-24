@@ -31,6 +31,7 @@ const appendMessage = (type: Role, text: string) => {
 
 defineExpose({
   appendMessage,
+  messages,
 });
 </script>
 
