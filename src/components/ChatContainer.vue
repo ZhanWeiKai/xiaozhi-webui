@@ -3,6 +3,14 @@ import { ref, nextTick } from "vue";
 import type { Message } from "@/types/message";
 import type { Role } from "@/types/chat";
 
+const props = defineProps<{
+  disabled?: boolean;
+}>();
+
+const emit = defineEmits<{
+  (e: "playTts", text: string): void;
+}>();
+
 const messages = ref<Message[]>([]);
 
 // 处理文本内容，去除结尾的，。标点符号
@@ -29,6 +37,11 @@ const appendMessage = (type: Role, text: string) => {
   });
 };
 
+const playMessage = (text: string) => {
+  if (props.disabled) return;
+  emit("playTts", text);
+};
+
 defineExpose({
   appendMessage,
   messages,
@@ -44,6 +57,16 @@ defineExpose({
     >
       <div class="message-content" v-html="msg.content"></div>
       <div class="message-time">{{ msg.time }}</div>
+      <button
+        v-if="msg.type === 'ai'"
+        class="play-tts-btn"
+        :disabled="disabled"
+        @click="playMessage(msg.content)"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
+        </svg>
+      </button>
     </div>
   </div>
 </template>
@@ -58,6 +81,7 @@ defineExpose({
   border-radius: 0.5rem;
   overflow-y: auto;
   scrollbar-width: none;
+  touch-action: pan-y;
 
   .message.ai,
   .message.user {
@@ -88,6 +112,37 @@ defineExpose({
       box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
       border-radius: 1rem 1rem 1rem 5px;
       color: #232b36;
+    }
+
+    .play-tts-btn {
+      margin-top: 0.15rem;
+      width: 1.5rem;
+      height: 1.5rem;
+      padding: 0.15rem;
+      background-color: #f59e0b;
+      border: none;
+      border-radius: 50%;
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.6;
+      transition: opacity 0.2s;
+
+      &:hover {
+        opacity: 1;
+      }
+
+      &:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+      }
+
+      svg {
+        width: 0.8rem;
+        height: 0.8rem;
+      }
     }
   }
 

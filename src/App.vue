@@ -167,12 +167,8 @@ const sendMessage = (text: string) => {
   wsService.sendTextMessage(textMessage);
 };
 
-const playLastAiMessage = () => {
-  const msgs = chatContainerRef.value?.messages;
-  if (!msgs) return;
-  const lastAiMsg = [...msgs].reverse().find((m) => m.type === "ai");
-  if (!lastAiMsg) return;
-  wsService.sendTextMessage(JSON.stringify({ type: "tts", text: lastAiMsg.content }));
+const playTtsMessage = (text: string) => {
+  wsService.sendTextMessage(JSON.stringify({ type: "tts", text }));
 };
 
 const isAiSpeaking = computed(() => {
@@ -252,12 +248,16 @@ onUnmounted(() => {
 <template>
   <div class="app-container">
     <Header :connection-status="wsService.connectionStatus.value" />
-    <ChatContainer class="chat-container" ref="chatContainerRef" />
+    <ChatContainer
+      class="chat-container"
+      ref="chatContainerRef"
+      :disabled="isAiSpeaking"
+      @play-tts="playTtsMessage"
+    />
     <InputField
       :disabled="isAiSpeaking"
       @send-message="(text: string) => sendMessage(text)"
       @phone-call-button-clicked="showVoiceCallPanel"
-      @play-tts-button-clicked="playLastAiMessage"
     />
     <SettingPanel />
     <VoiceCall
