@@ -4,8 +4,6 @@ import websockets
 import json
 import numpy as np
 import requests
-from websockets.exceptions import ConnectionClosedOK
-from urllib.parse import urlparse, urlencode
 from ..utils.device import get_local_ip
 from ..utils.audio import pcm_to_opus, decoder, AudioProcessor
 from logging import getLogger
@@ -18,19 +16,21 @@ class WebSocketProxy:
         self,
         device_id: str,
         client_id: str,
+        websocket_url: str,
         ota_version_url: str,
         proxy_host: str | None,
         proxy_port: int | None,
+        token_enable: bool,
         token: str,
     ):
         self.device_id = device_id
         self.client_id = client_id
+        self.websocket_url = websocket_url
         self.ota_version_url = ota_version_url
         self.proxy_host = proxy_host
         self.proxy_port = proxy_port
+        self.token_enable = token_enable
         self.token = token
-        self.ota_token = ""
-        self.websocket_url = ""
 
         self.audio_processor = AudioProcessor(960)
         self.decoder = decoder
@@ -40,10 +40,18 @@ class WebSocketProxy:
         self.audio_lock = asyncio.Lock()
         self.shutdown_event = asyncio.Event()
 
+        self.headers = {
+            "Device-Id": self.device_id,
+            "Client-Id": self.client_id,
+            "Protocol-Version": "1",
+        }
+        if self.token_enable:
+            self.headers["Authorization"] = f"Bearer {self.token}"
+
         self._update_ota_address()
 
     def _update_ota_address(self):
-        """通过 OTA 接口获取 WebSocket 地址和 token"""
+        """检查 OTA 服务器连接，获取 MQTT 等信息"""
         headers = {
             "Device-Id": self.device_id,
             "Client-Id": self.client_id,
@@ -88,17 +96,8 @@ class WebSocketProxy:
             response_data = response.json()
             logger.info(f"OTA 响应: {json.dumps(response_data, indent=2, ensure_ascii=False)}")
 
-            if "websocket" in response_data:
-                ws_info = response_data["websocket"]
-                ws_url = ws_info.get("url", "")
-                self.ota_token = ws_info.get("token", "")
-
-                self.websocket_url = ws_url
-                logger.info(f"OTA WebSocket 地址: {self.websocket_url}")
-                logger.info(f"OTA Token 已获取: {self.ota_token[:20]}...")
-            else:
-                logger.error(f"OTA 响应中没有 websocket 信息: {response_data}")
-                raise ValueError("OTA 响应中没有 websocket 信息")
+            if "mqtt" in response_data:
+                logger.debug(f"MQTT 信息: {response_data['mqtt']}")
 
         except requests.Timeout:
             logger.error("OTA 请求超时")
@@ -107,16 +106,6 @@ class WebSocketProxy:
         except requests.RequestException as e:
             logger.error(f"OTA 请求失败: {e}")
             raise ValueError("无法连接到 OTA 服务器，请检查网络连接")
-
-    def _build_ws_url(self) -> str:
-        """构建带认证参数的 WebSocket URL"""
-        params = {
-            "authorization": f"Bearer {self.ota_token}",
-            "device-id": self.device_id,
-            "client-id": self.client_id,
-        }
-        separator = "&" if "?" in self.websocket_url else "?"
-        return f"{self.websocket_url}{separator}{urlencode(params)}"
 
     def create_wav_header(self, total_samples):
         """创建 Wave 文件头"""
@@ -143,15 +132,15 @@ class WebSocketProxy:
     async def proxy_handler(self, websocket):
         """来自浏览器的 WebSocket 连接"""
         try:
-            ws_url = self._build_ws_url()
-            logger.info(f"正在连接 xiaozhi-server: {self.websocket_url}")
-
-            async with websockets.connect(ws_url) as server_ws:
+            logger.info(
+                f"正在连接 xiaozhi-server: {self.websocket_url}"
+            )
+            async with websockets.connect(
+                self.websocket_url, additional_headers=self.headers
+            ) as server_ws:
                 logger.info("已连接至 xiaozhi-server")
                 await self._handle_proxy_communication(websocket, server_ws)
 
-        except ConnectionClosedOK:
-            logger.info("xiaozhi-server 正常关闭连接")
         except Exception as e:
             logger.error(f"代理失败: {e}")
         finally:
@@ -257,8 +246,6 @@ class WebSocketProxy:
 
                         except Exception as e:
                             logger.error(f"音频处理错误: {e}")
-        except ConnectionClosedOK:
-            logger.info("xiaozhi-server 正常关闭连接")
         except Exception as e:
             logger.error(f"服务端消息处理异常: {e}")
 
@@ -268,17 +255,6 @@ class WebSocketProxy:
             async for message in client_ws:
                 if isinstance(message, str):
                     logger.info(f"[客户端→服务端] {message[:200]}")
-                    try:
-                        msg_data = json.loads(message)
-                        if msg_data.get("type") == "hello":
-                            msg_data["token"] = self.token
-                            msg_data["device_id"] = self.device_id
-                            msg_data["device_name"] = "xiaozhi-webui"
-                            msg_data["device_mac"] = self.device_id
-                            message = json.dumps(msg_data)
-                            logger.info(f"hello 消息已注入认证信息: device_id={self.device_id}")
-                    except json.JSONDecodeError:
-                        pass
                     await server_ws.send(message)
                 else:
                     try:

@@ -144,7 +144,8 @@
       "Bash(ssh axonex@100.69.157.38 \"docker logs xiaozhi-webui-backend --tail 80 2>&1\" 2>&1)",
       "Bash(cd \"C:\\\\claude-project\\\\xiaozhi-webui\\\\xiaozhi-webui-4-9\\\\xiaozhi-webui\" && npx vue-tsc --noEmit 2>&1)",
       "Bash(ssh axonex@100.69.157.38 \"rm -rf /var/www/xiaozhi-webui/* && cp -r /tmp/webui-frontend/* /var/www/xiaozhi-webui/ && chown -R www-data:www-data /var/www/xiaozhi-webui && echo 'Deploy done' && curl -s -o /dev/null -w 'HTTP: %{http_code}' http://localhost:8100\" 2>&1)",
-      "Bash(ssh axonex@100.69.157.38 \"printf 'Aimo123456\\\\n' | sudo -S rm -rf /var/www/xiaozhi-webui/* && printf 'Aimo123456\\\\n' | sudo -S cp -r /tmp/webui-frontend/* /var/www/xiaozhi-webui/ && printf 'Aimo123456\\\\n' | sudo -S chown -R www-data:www-data /var/www/xiaozhi-webui && echo 'Deploy done'\" 2>&1)"
+      "Bash(ssh axonex@100.69.157.38 \"printf 'Aimo123456\\\\n' | sudo -S rm -rf /var/www/xiaozhi-webui/* && printf 'Aimo123456\\\\n' | sudo -S cp -r /tmp/webui-frontend/* /var/www/xiaozhi-webui/ && printf 'Aimo123456\\\\n' | sudo -S chown -R www-data:www-data /var/www/xiaozhi-webui && echo 'Deploy done'\" 2>&1)",
+      "Bash(pnpm dev:*)"
     ]
   }
 }
